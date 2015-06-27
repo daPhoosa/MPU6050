@@ -118,23 +118,8 @@ void MPU6050::retrieve(){
 
 	Wire.beginTransmission(MPU6050_ADD);	//start transmission to device
 	Wire.requestFrom(MPU6050_ADD, 14);		// request 14 bytes from device
-	/* -- Original code
-	aXi  = Wire.read() << 8;		// receive a byte
-	aXi |= Wire.read();
-	aYi  = Wire.read() << 8;
-	aYi |= Wire.read();
-	aZi  = Wire.read() << 8;
-	aZi |= Wire.read();
-	_tempRaw  = Wire.read() << 8;
-	_tempRaw |= Wire.read();
-	gXi  = Wire.read() << 8;
-	gXi |= Wire.read();
-	gYi  = Wire.read() << 8;
-	gYi |= Wire.read();
-	gZi  = Wire.read() << 8;
-	gZi |= Wire.read();	*/
 	
-	aXi  	 = Wire.read() << 8 | Wire.read(); // experimental code
+	aXi  	 = Wire.read() << 8 | Wire.read();
 	aYi  	 = Wire.read() << 8 | Wire.read();
 	aZi  	 = Wire.read() << 8 | Wire.read();
 	_tempRaw = Wire.read() << 8 | Wire.read();
@@ -193,7 +178,7 @@ void MPU6050::accelZero(){ // Generate bias offsets
 	if(sampleTempY < (-.75 * sampleCount)){sampleTempY += sampleCount;}
 	if(sampleTempZ < (-.75 * sampleCount)){sampleTempZ += sampleCount;}
 		
-	aX_bias = sampleTempX / sampleCount;
+	aX_bias = sampleTempX / sampleCount;	// average bias readings
 	aY_bias = sampleTempY / sampleCount;
 	aZ_bias = sampleTempZ / sampleCount;
 
@@ -233,15 +218,6 @@ void MPU6050::gyroZero(){
 
 }
 
-float MPU6050::temp(){
+float MPU6050::temp(){	// return sensor temperature
 	return(float(_tempRaw) * TEMP_SCALE + TEMP_OFFSET);
 }
-
-/*
-void MPU6050::displayData(){
-  
-
-	
-	Serial.println(""); 
-}
-*/
