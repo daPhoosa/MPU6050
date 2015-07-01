@@ -25,11 +25,11 @@
 	
 	DLPF
 		A_hz	A_del	G_hz	G_del	Fs_khz
-	0	260		0.0		256		0.98	8
-	1	184		2.0		188		1.9		1
-	2	94		3.0		98		2.8		1
-	3	44		4.9		42		4.8		1
-	4	21		8.5		20		8.3		1
+	0	260	0.0	256	0.98	8
+	1	184	2.0	188	1.9	1
+	2	94		3.0	98		2.8	1
+	3	44		4.9	42		4.8	1
+	4	21		8.5	20		8.3	1
 	5	10		13.8	10		13.4	1
 	6	5		19.0	5		18.6	1
 	
@@ -46,13 +46,13 @@
 #define MPU6050_ADD 0x68 // 7bit I2C sensor address, default on most boards
 //#define MPU6050_ADD 0x69 // alternate address is 0x69 - todo: make this selectable at object creation for dual sensor usage
 
-#define TEMP_SCALE  (1.0 / 340.0)
-#define TEMP_OFFSET 36.53
+#define TEMP_SCALE  (1.0f / 340.0f)
+#define TEMP_OFFSET 36.53f
 
 #define ACCEL_BASE	2048.0f		// LSB per g   @ +/- 16g
-#define GYRO_BASE	16.375f		// LSB per dps @ +/- 2000 deg/s
+#define GYRO_BASE		16.375f		// LSB per dps @ +/- 2000 deg/s
 
-#define DEG_TO_RAD	(3.141592654 / 180.0)
+#define DEG_TO_RAD	(3.141592654f / 180.0f)
 
 
 
@@ -71,7 +71,8 @@ MPU6050::MPU6050(uint16_t sampleRate, byte filterLevel, byte gyroRange, byte acc
 	_gFSR = gyroRange  << 3;	// bitshift to correct position for settings register
 	_aFSR = accelRange << 3;
 	
-	accelToG  = 1.0 / (ACCEL_BASE * float(1 << (3 - accelRange)));		// constant to convert from raw int to float G
+	accelToG  = 1.0f / (ACCEL_BASE * float(1 << (3 - accelRange)));		// constant to convert from raw int to float G
+
 	gyroToRad = DEG_TO_RAD / (GYRO_BASE * float(1 << (3 - gyroRange)));	// constant to convert from raw int to float rad/sec
 	
 	aX_bias = 0;
@@ -84,12 +85,14 @@ MPU6050::MPU6050(uint16_t sampleRate, byte filterLevel, byte gyroRange, byte acc
 
 }
 
+
 void MPU6050::writeTo(int16_t device, byte address, byte val) { // *** I2C Write Function ***
 	Wire.beginTransmission(device);	//start transmission to device 
 	Wire.write(address);			// send register address
 	Wire.write(val);				// send value to write
 	Wire.endTransmission();			//end transmission
 }
+
 
 void MPU6050::initialize(){
 	
@@ -114,35 +117,60 @@ void MPU6050::initialize(){
 	Wire.endTransmission();		//end transmission
 }
 
+
 void MPU6050::retrieve(){
 
 	Wire.beginTransmission(MPU6050_ADD);	//start transmission to device
 	Wire.requestFrom(MPU6050_ADD, 14);		// request 14 bytes from device
 	
-	aXi  	 = Wire.read() << 8 | Wire.read();
-	aYi  	 = Wire.read() << 8 | Wire.read();
-	aZi  	 = Wire.read() << 8 | Wire.read();
-	_tempRaw = Wire.read() << 8 | Wire.read();
-	gXi  	 = Wire.read() << 8 | Wire.read();
-	gYi  	 = Wire.read() << 8 | Wire.read();
-	gZi  	 = Wire.read() << 8 | Wire.read();	
+	AX.byte[1] = Wire.read();	// high byte
+	AX.byte[0] = Wire.read();	// low byte
+	
+	AY.byte[1] = Wire.read();	// high byte
+	AY.byte[0] = Wire.read();	// low byte
+	
+	AZ.byte[1] = Wire.read();	// high byte
+	AZ.byte[0] = Wire.read();	// low byte
+	
+	TempInt.byte[1] = Wire.read();	// high byte
+	TempInt.byte[0] = Wire.read();	// low byte
+	
+	GX.byte[1] = Wire.read();	// high byte
+	GX.byte[0] = Wire.read();	// low byte
+	
+	GY.byte[1] = Wire.read();	// high byte
+	GY.byte[0] = Wire.read();	// low byte
+	
+	GZ.byte[1] = Wire.read();	// high byte
+	GZ.byte[0] = Wire.read();	// low byte
+	
+	/* // old
+	AX.full 		 = Wire.read() << 8 | Wire.read();
+	AY.full  	 = Wire.read() << 8 | Wire.read();
+	AZ.full  	 = Wire.read() << 8 | Wire.read();
+	TempInt.full = Wire.read() << 8 | Wire.read();
+	GX.full  	 = Wire.read() << 8 | Wire.read();
+	GY.full  	 = Wire.read() << 8 | Wire.read();
+	GZ.full  	 = Wire.read() << 8 | Wire.read();	
+	*/
 	
 	Wire.write(0x3B);		// send pointer back to the beginning of data, saves time
 	Wire.endTransmission(); //end transmission
 	
-}
-
-void MPU6050::convertToFloat(){
-	aX = float(aXi) * accelToG + aX_bias;// todo: store biases in sensor
-	aY = float(aYi) * accelToG + aY_bias;
-	aZ = float(aZi) * accelToG + aZ_bias;
+	// Convert to float
+	aX = float(AX.full) * accelToG + aX_bias;// todo: store biases in sensor
+	aY = float(AY.full) * accelToG + aY_bias;
+	aZ = float(AZ.full) * accelToG + aZ_bias;
 	
-	gX = float(gXi) * gyroToRad + gX_bias;
-	gY = float(gYi) * gyroToRad + gY_bias;
-	gZ = float(gZi) * gyroToRad + gZ_bias;
+	gX = float(GX.full) * gyroToRad + gX_bias;
+	gY = float(GY.full) * gyroToRad + gY_bias;
+	gZ = float(GZ.full) * gyroToRad + gZ_bias;
+	
 }
 
-void MPU6050::accelZero(){ // Generate bias offsets
+
+void MPU6050::accelZero() // Measure and store accelerometer bias offsets
+{
 	
 	aX_bias = 0;
 	aY_bias = 0;
@@ -159,32 +187,34 @@ void MPU6050::accelZero(){ // Generate bias offsets
 		unsigned long loopEnd = micros() + samplePeriod;
 		
 		retrieve();
-		convertToFloat();
+		//convertToFloat();
 		
 		sampleTempX -= aX;
 		sampleTempY -= aY;
 		sampleTempZ -= aZ;
-		sampleCount += 1.0;
+		sampleCount += 1.0f;
 		
 		delayMicroseconds(loopEnd - millis());	// delay to wait for new data to be sampled
 	}
 	
-	// remove gravity (assumes one axis is lined up)
-	if(sampleTempX > (.75 * sampleCount)){sampleTempX -= sampleCount;}
-	if(sampleTempY > (.75 * sampleCount)){sampleTempY -= sampleCount;}
-	if(sampleTempZ > (.75 * sampleCount)){sampleTempZ -= sampleCount;}
+	// remove gravity (assumes one axis is parallel to gravity)
+	if(sampleTempX > (.75f * sampleCount)){sampleTempX -= sampleCount;}
+	if(sampleTempY > (.75f * sampleCount)){sampleTempY -= sampleCount;}
+	if(sampleTempZ > (.75f * sampleCount)){sampleTempZ -= sampleCount;}
 	
-	if(sampleTempX < (-.75 * sampleCount)){sampleTempX += sampleCount;}
-	if(sampleTempY < (-.75 * sampleCount)){sampleTempY += sampleCount;}
-	if(sampleTempZ < (-.75 * sampleCount)){sampleTempZ += sampleCount;}
-		
+	if(sampleTempX < (-.75f * sampleCount)){sampleTempX += sampleCount;}
+	if(sampleTempY < (-.75f * sampleCount)){sampleTempY += sampleCount;}
+	if(sampleTempZ < (-.75f * sampleCount)){sampleTempZ += sampleCount;}
+	
 	aX_bias = sampleTempX / sampleCount;	// average bias readings
 	aY_bias = sampleTempY / sampleCount;
 	aZ_bias = sampleTempZ / sampleCount;
 
 }
 
-void MPU6050::gyroZero(){
+
+void MPU6050::gyroZero()	// Measure and store gyro bias offsets
+{
 	
 	gX_bias = 0;
 	gY_bias = 0;
@@ -202,7 +232,7 @@ void MPU6050::gyroZero(){
 		unsigned long loopEnd = micros() + samplePeriod;
 		
 		retrieve();
-		convertToFloat();
+		//convertToFloat();
 		
 		sampleTempX -= gX;
 		sampleTempY -= gY;
@@ -218,6 +248,8 @@ void MPU6050::gyroZero(){
 
 }
 
-float MPU6050::temp(){	// return sensor temperature
-	return(float(_tempRaw) * TEMP_SCALE + TEMP_OFFSET);
+
+float MPU6050::temp_C()	// return sensor temperature
+{
+	return(float(TempInt.full) * TEMP_SCALE + TEMP_OFFSET);
 }

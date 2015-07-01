@@ -1,6 +1,6 @@
 /*	Invensense MPU-6050 Library
 	by Phillip Schmidt
-	v1.0
+	v2.0
 	
 	*** OBJECT INPUTS ***
 	SampleRate	(3-1000)Hz with filtering, (31-8000)Hz w/o filtering.
@@ -21,11 +21,11 @@
 	
 	DLPF
 		A_hz	A_del	G_hz	G_del	Fs_khz
-	0	260		0.0		256		0.98	8
-	1	184		2.0		188		1.9		1
-	2	94		3.0		98		2.8		1
-	3	44		4.9		42		4.8		1
-	4	21		8.5		20		8.3		1
+	0	260	0.0	256	0.98	8
+	1	184	2.0	188	1.9	1
+	2	94		3.0	98		2.8	1
+	3	44		4.9	42		4.8	1
+	4	21		8.5	20		8.3	1
 	5	10		13.8	10		13.4	1
 	6	5		19.0	5		18.6	1
 	
@@ -50,24 +50,28 @@ class MPU6050
 		void retrieve();		// pull data from sensor and store locally
 		void accelZero();
 		void gyroZero();
-		void convertToFloat();  // converts the integer results into floats and adds bias comp
-		float temp();
+		float temp_C();
 		
-		int16_t aXi, aYi, aZi;	// raw accelerometer results (int)
-		int16_t gXi, gYi, gZi;	// raw gyro results (int)
-
 		float aX, aY, aZ;		// accelerometer results
 		float gX, gY, gZ;		// gyro results
 
 		float aX_bias, aY_bias, aZ_bias;
 		float gX_bias, gY_bias, gZ_bias;
 		
-		float accelToG, gyroToRad;
-		
 		unsigned long samplePeriod;  // [us] between when samples are updated
 		
+		
 	private:
+	
+		union byte2Integer 
+		{
+			int16_t full;
+			uint8_t byte[2]; // byte0 = LSB, byte1 = MSB
+		} AX, AY, AZ, TempInt, GX, GY, GZ;
+	
 		void writeTo(int16_t device, byte address, byte val);  // I2C helper function
+
+		float accelToG, gyroToRad;	// conversion factors to convert from integer to decimal float
 		
 		byte _sampleRateDiv, _filter, _gFSR, _aFSR;
 		byte _lowShift, _highShift;

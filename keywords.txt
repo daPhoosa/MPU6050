@@ -6,5 +6,5 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-MPU6050	KEYWORD1
+MPU6050		KEYWORD1
 
